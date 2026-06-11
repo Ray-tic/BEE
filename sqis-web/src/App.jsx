@@ -9,23 +9,22 @@ const API     = "http://localhost:8000"
 const POLL_MS = 5000
 // ─────────────────────────────────────────────────────────────────
 
-// ── Brand colors (Zero Exclusion Carbon Poverty Campus Club) ──────
+// ── Brand colors ──────────────────────────────────────────────────
 const BRAND = {
-  primary:   "#ABB272",  // Vert Principal — unity & durability
-  inclusion: "#B1D5BE",  // Zéro Exclusion — inclusion & diversity
-  carbon:    "#469B63",  // Zéro Carbone   — ecological commitment
-  poverty:   "#138141",  // Zéro Pauvreté  — social justice
+  primary:   "#ABB272",  // Vert Principal
+  inclusion: "#B1D5BE",  // Zéro Exclusion
+  carbon:    "#469B63",  // Zéro Carbone
+  poverty:   "#138141",  // Zéro Pauvreté
   bg:        "#F7F9F4",
   surface:   "#FFFFFF",
   border:    "#DDE8D0",
   text:      "#1A2E1A",
   muted:     "#6B7F5E",
+  danger:    "#c0392b",
 }
 
-// Cycle through brand greens for multi-hive chart lines
 const HIVE_COLORS = [BRAND.carbon, BRAND.poverty, BRAND.primary, BRAND.inclusion, "#2D6A4F"]
 
-// ── Logo — inline SVG fallback + <img> with the uploaded logo ─────
 function Logo({ size = 48 }) {
   return (
     <img
@@ -37,12 +36,10 @@ function Logo({ size = 48 }) {
   )
 }
 
-// ── Stat card ─────────────────────────────────────────────────────
 function StatCard({ label, value, accent }) {
   return (
     <div style={{
-      background: BRAND.bg,
-      border: `1px solid ${BRAND.border}`,
+      background: BRAND.bg, border: `1px solid ${BRAND.border}`,
       borderRadius: 10, padding: "14px 16px", flex: 1, minWidth: 100
     }}>
       <div style={{ fontSize: 10, color: BRAND.muted, textTransform: "uppercase",
@@ -54,13 +51,11 @@ function StatCard({ label, value, accent }) {
   )
 }
 
-// ── Hive card ─────────────────────────────────────────────────────
 function HiveCard({ hive }) {
   const isRelease = hive.decision === "RELEASE"
   return (
     <div style={{
-      background: BRAND.surface,
-      borderRadius: 14, padding: 20,
+      background: BRAND.surface, borderRadius: 14, padding: 20,
       border: `1.5px solid ${isRelease ? BRAND.carbon : BRAND.border}`,
       boxShadow: isRelease ? `0 0 0 3px ${BRAND.inclusion}` : "none",
       transition: "all 0.3s"
@@ -72,17 +67,17 @@ function HiveCard({ hive }) {
           <div style={{ display: "flex", alignItems: "center", gap: 8 }}>
             <div style={{
               width: 9, height: 9, borderRadius: "50%",
-              background: hive.connected ? BRAND.carbon : "#e57373"
+              background: hive.connected ? BRAND.carbon : BRAND.danger
             }} />
             <span style={{ fontWeight: 700, fontSize: 15, color: BRAND.text }}>
               {hive.hive_id.replace(/_/g, " ").toUpperCase()}
             </span>
           </div>
-          {hive.ts && (
-            <div style={{ fontSize: 11, color: BRAND.muted, marginTop: 2 }}>
-              Last update: {new Date(hive.ts).toLocaleTimeString()}
-            </div>
-          )}
+          {/* Port info — meaningful for Arduino USB */}
+          <div style={{ fontSize: 11, color: BRAND.muted, marginTop: 2 }}>
+            {hive.port ?? "—"}
+            {hive.ts ? ` · ${new Date(hive.ts).toLocaleTimeString()}` : ""}
+          </div>
         </div>
         <div style={{
           background: isRelease ? BRAND.carbon : BRAND.bg,
@@ -105,7 +100,7 @@ function HiveCard({ hive }) {
         <StatCard
           label="Frequency"
           value={hive.freq != null ? `${hive.freq.toFixed(0)} Hz` : null}
-          accent={hive.freq > 500 ? "#c0392b" : BRAND.text}
+          accent={hive.freq > 500 ? BRAND.danger : BRAND.text}
         />
         <StatCard
           label="P_accept"
@@ -115,18 +110,20 @@ function HiveCard({ hive }) {
         <StatCard
           label="Queen absent"
           value={hive.queen_absent == null ? "—" : hive.queen_absent ? "YES" : "NO"}
-          accent={hive.queen_absent ? "#c0392b" : BRAND.carbon}
+          accent={hive.queen_absent ? BRAND.danger : BRAND.carbon}
         />
       </div>
 
+      {/* Error */}
       {hive.error && (
-        <div style={{ fontSize: 12, color: "#c0392b", marginTop: 10 }}>⚠ {hive.error}</div>
+        <div style={{ fontSize: 12, color: BRAND.danger, marginTop: 10 }}>
+          ⚠ {hive.error}
+        </div>
       )}
     </div>
   )
 }
 
-// ── Main app ──────────────────────────────────────────────────────
 export default function App() {
   const [hives,   setHives]   = useState([])
   const [history, setHistory] = useState({})
@@ -140,7 +137,7 @@ export default function App() {
       setHives(hivesData)
       setError(null)
 
-      // Fetch history for every connected hive dynamically
+      // Fetch history for every hive dynamically — no hardcoded count
       const entries = await Promise.all(
         hivesData.map(async (h) => {
           const r    = await fetch(`${API}/hives/${h.hive_id}/history?limit=60`)
@@ -189,19 +186,17 @@ export default function App() {
         <div style={{ display: "flex", alignItems: "center", gap: 20 }}>
           <div style={{ textAlign: "right" }}>
             <div style={{ fontSize: 13, fontWeight: 600, color: BRAND.carbon }}>
-              {connected} / {hives.length} hives online
+              {connected} / {hives.length} hives connected
             </div>
             <div style={{ fontSize: 11, color: BRAND.muted }}>
-              refresh every {POLL_MS / 1000}s
+              Arduino · USB serial · refresh every {POLL_MS / 1000}s
             </div>
           </div>
-          {/* Live indicator */}
           <div style={{ display: "flex", alignItems: "center", gap: 6,
                         background: BRAND.bg, border: `1px solid ${BRAND.border}`,
                         borderRadius: 100, padding: "5px 12px" }}>
             <div style={{ width: 7, height: 7, borderRadius: "50%",
                           background: BRAND.carbon,
-                          boxShadow: `0 0 0 2px ${BRAND.inclusion}`,
                           animation: "pulse 2s infinite" }} />
             <span style={{ fontSize: 11, fontWeight: 600, color: BRAND.carbon }}>LIVE</span>
           </div>
@@ -209,71 +204,72 @@ export default function App() {
       </nav>
 
       <style>{`
-        @keyframes pulse {
-          0%, 100% { opacity: 1; }
-          50%       { opacity: 0.4; }
-        }
+        @keyframes pulse { 0%,100% { opacity:1; } 50% { opacity:0.3; } }
       `}</style>
 
       <div style={{ maxWidth: 980, margin: "0 auto", padding: "2rem 1.5rem" }}>
 
-        {/* ── Error banner ── */}
+        {/* ── Error ── */}
         {error && (
           <div style={{ background: "#fdf2f2", border: "1px solid #f5c6c6",
                         borderRadius: 10, padding: "12px 16px", marginBottom: "1.5rem",
-                        color: "#c0392b", fontSize: 14 }}>
+                        color: BRAND.danger, fontSize: 14 }}>
             {error}
           </div>
         )}
 
         {/* ── Release alert ── */}
         {releasing.length > 0 && (
-          <div style={{ background: BRAND.inclusion,
-                        border: `1px solid ${BRAND.carbon}`,
+          <div style={{ background: BRAND.inclusion, border: `1px solid ${BRAND.carbon}`,
                         borderRadius: 10, padding: "12px 16px", marginBottom: "1.5rem",
                         color: BRAND.poverty, fontWeight: 600, fontSize: 14 }}>
             🟢 RELEASE recommended: {releasing.map(h => h.hive_id).join(", ")}
           </div>
         )}
 
-        {/* ── Summary strip ── */}
+        {/* ── Summary strip — counts come purely from API ── */}
         {hives.length > 0 && (
           <div style={{ display: "flex", gap: 12, marginBottom: "1.5rem", flexWrap: "wrap" }}>
             {[
-              { label: "Total hives",  value: hives.length },
-              { label: "Online",       value: connected,
+              { label: "Total hives",  value: hives.length,
+                accent: BRAND.text },
+              { label: "Connected",    value: connected,
                 accent: BRAND.carbon },
               { label: "Offline",      value: hives.length - connected,
-                accent: hives.length - connected > 0 ? "#c0392b" : BRAND.text },
+                accent: hives.length - connected > 0 ? BRAND.danger : BRAND.text },
               { label: "Need release", value: releasing.length,
                 accent: releasing.length > 0 ? BRAND.poverty : BRAND.text },
             ].map(s => (
               <div key={s.label} style={{
                 background: BRAND.surface, border: `1px solid ${BRAND.border}`,
                 borderRadius: 10, padding: "14px 20px", flex: 1, minWidth: 120,
-                borderTop: `3px solid ${s.accent ?? BRAND.primary}`
+                borderTop: `3px solid ${s.accent}`
               }}>
                 <div style={{ fontSize: 10, color: BRAND.muted, textTransform: "uppercase",
                               letterSpacing: 1, marginBottom: 4 }}>{s.label}</div>
-                <div style={{ fontSize: 28, fontWeight: 700,
-                              color: s.accent ?? BRAND.text }}>{s.value}</div>
+                <div style={{ fontSize: 28, fontWeight: 700, color: s.accent }}>
+                  {s.value}
+                </div>
               </div>
             ))}
           </div>
         )}
 
-        {/* ── Hive cards — fully dynamic ── */}
-        {hives.length === 0 && !error ? (
+        {/* ── Empty state ── */}
+        {hives.length === 0 && !error && (
           <div style={{ textAlign: "center", padding: "4rem 0", color: BRAND.muted }}>
             <div style={{ fontSize: 40, marginBottom: 12 }}>🐝</div>
-            <div style={{ fontSize: 16, fontWeight: 500 }}>
-              Waiting for ESP32 devices to connect…
+            <div style={{ fontSize: 16, fontWeight: 500, marginBottom: 6 }}>
+              No Arduinos detected yet
             </div>
-            <div style={{ fontSize: 13, marginTop: 6 }}>
-              Hive cards will appear automatically once an ESP32 POSTs to /sensor
+            <div style={{ fontSize: 13 }}>
+              Plug in an Arduino via USB — it will appear here automatically
             </div>
           </div>
-        ) : (
+        )}
+
+        {/* ── Hive cards — one per detected Arduino ── */}
+        {hives.length > 0 && (
           <div style={{
             display: "grid",
             gridTemplateColumns: "repeat(auto-fit, minmax(280px, 1fr))",
@@ -286,7 +282,6 @@ export default function App() {
         {/* ── Charts ── */}
         {hives.length > 0 && (<>
 
-          {/* P_accept chart */}
           <div style={{ background: BRAND.surface, border: `1px solid ${BRAND.border}`,
                         borderRadius: 14, padding: "20px 20px 10px",
                         marginBottom: "1.5rem",
@@ -301,12 +296,9 @@ export default function App() {
               <LineChart>
                 <XAxis dataKey="ts" hide allowDuplicatedCategory={false} />
                 <YAxis domain={[0, 1]} tickCount={6}
-                  style={{ fontSize: 11 }} tick={{ fill: BRAND.muted }} />
-                <Tooltip
-                  formatter={(v) => v.toFixed(3)}
-                  labelFormatter={() => ""}
-                  contentStyle={{ borderColor: BRAND.border, borderRadius: 8 }}
-                />
+                       style={{ fontSize: 11 }} tick={{ fill: BRAND.muted }} />
+                <Tooltip formatter={v => v.toFixed(3)} labelFormatter={() => ""}
+                         contentStyle={{ borderColor: BRAND.border, borderRadius: 8 }} />
                 <Legend wrapperStyle={{ fontSize: 12, color: BRAND.muted }} />
                 <ReferenceLine y={0.7} stroke={BRAND.primary} strokeDasharray="5 4"
                   label={{ value: "0.70", position: "right",
@@ -321,7 +313,6 @@ export default function App() {
             </ResponsiveContainer>
           </div>
 
-          {/* Frequency chart */}
           <div style={{ background: BRAND.surface, border: `1px solid ${BRAND.border}`,
                         borderRadius: 14, padding: "20px 20px 10px",
                         borderTop: `3px solid ${BRAND.poverty}` }}>
@@ -329,21 +320,18 @@ export default function App() {
               Buzzing frequency
             </div>
             <div style={{ fontSize: 12, color: BRAND.muted, marginBottom: 16 }}>
-              {hives.length} hive{hives.length > 1 ? "s" : ""} · 500 Hz threshold — above = queen absent
+              {hives.length} hive{hives.length > 1 ? "s" : ""} · piezoelectric sensor · 500 Hz threshold
             </div>
             <ResponsiveContainer width="100%" height={200}>
               <LineChart>
                 <XAxis dataKey="ts" hide allowDuplicatedCategory={false} />
                 <YAxis style={{ fontSize: 11 }} tick={{ fill: BRAND.muted }} />
-                <Tooltip
-                  formatter={(v) => `${v.toFixed(0)} Hz`}
-                  labelFormatter={() => ""}
-                  contentStyle={{ borderColor: BRAND.border, borderRadius: 8 }}
-                />
+                <Tooltip formatter={v => `${v.toFixed(0)} Hz`} labelFormatter={() => ""}
+                         contentStyle={{ borderColor: BRAND.border, borderRadius: 8 }} />
                 <Legend wrapperStyle={{ fontSize: 12, color: BRAND.muted }} />
-                <ReferenceLine y={500} stroke="#c0392b" strokeDasharray="5 4"
+                <ReferenceLine y={500} stroke={BRAND.danger} strokeDasharray="5 4"
                   label={{ value: "500 Hz", position: "right",
-                           fontSize: 11, fill: "#c0392b" }} />
+                           fontSize: 11, fill: BRAND.danger }} />
                 {Object.entries(history).map(([hive_id, data], i) => (
                   <Line key={hive_id} data={data} type="monotone"
                     dataKey="freq" name={hive_id.replace(/_/g, " ")}

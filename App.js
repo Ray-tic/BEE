@@ -17,7 +17,7 @@ import {
 } from "react-native"
 
 // ── CONFIG ────────────────────────────────────────────────────────
-const SERVER_IP   = "192.168.1.42"   // ← your laptop's local IP
+const SERVER_IP   = "192.168.1.15"   // ← your laptop's local IP
 const SERVER_PORT = "8000"
 const API         = `http://${SERVER_IP}:${SERVER_PORT}`
 const POLL_MS     = 5000
